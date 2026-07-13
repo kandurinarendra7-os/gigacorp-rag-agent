@@ -1,0 +1,49 @@
+[Section: Company Overview]
+GigaCorp is a fictional online retailer of electronics and home goods, founded in 2015.
+GigaCorp ships to over 40 countries worldwide from three regional warehouses: North America, Europe, and Asia-Pacific.
+Customer support is available via chat, email, and phone.
+
+[Section: Shipping Policy]
+Standard shipping within the United States takes 3-5 business days and costs $4.99, or is free on orders over $50.
+Expedited shipping within the United States takes 1-2 business days and costs $14.99.
+International shipping is available to over 40 countries. Delivery times range from 7-14 business days depending on destination.
+Shipping to India specifically takes 8-12 business days and costs $19.99 for standard international shipping, or $39.99 for express (4-6 business days).
+Shipping to Canada takes 5-8 business days and costs $12.99 standard.
+Shipping to the United Kingdom and European Union takes 6-10 business days and costs $16.99 standard.
+All international orders may be subject to customs fees and import duties, which are the responsibility of the customer.
+Orders are processed within 1 business day before shipping, except on weekends and public holidays.
+Tracking numbers are emailed to customers within 24 hours of shipment.
+
+[Section: Return Process]
+GigaCorp accepts returns within 30 days of delivery for a full refund, provided the item is unused and in its original packaging.
+To initiate a return, customers must log into their GigaCorp account, go to "Order History," and select "Start a Return."
+Return shipping is free for defective or incorrect items. For all other returns, the customer pays return shipping costs.
+Refunds are processed within 5-7 business days after GigaCorp receives the returned item.
+Items marked "Final Sale" cannot be returned or exchanged.
+Exchanges for a different size or color are processed the same way as returns, followed by a new order.
+Digital products and gift cards are non-refundable.
+
+[Section: Business Hours]
+GigaCorp customer support is available Monday through Friday, 8:00 AM to 8:00 PM Eastern Time.
+On Saturdays, support is available from 9:00 AM to 5:00 PM Eastern Time.
+GigaCorp customer support is closed on Sundays and major U.S. public holidays.
+Live chat support is available 24/7 for Premium and Business tier customers only.
+Warehouse and fulfillment operations run Monday through Saturday, excluding public holidays.
+
+[Section: Service Tiers]
+GigaCorp offers three membership tiers: Basic, Premium, and Business.
+Basic tier is free and includes standard shipping rates and email-only support during business hours.
+Premium tier costs $9.99/month and includes free standard shipping on all orders, 24/7 live chat support, and a 45-day return window instead of 30 days.
+Business tier costs $29.99/month and includes free expedited shipping, a dedicated account manager, 24/7 phone and chat support, and a 60-day return window.
+Premium and Business members also receive early access to sales events and exclusive discounts.
+Members can upgrade, downgrade, or cancel their tier at any time from the account settings page; changes take effect at the next billing cycle.
+
+[Section: Payment and Billing]
+GigaCorp accepts all major credit cards, PayPal, and Apple Pay.
+Membership tier subscriptions are billed monthly and can be cancelled at any time with no cancellation fee.
+Sales tax is applied based on the shipping destination in accordance with local tax laws.
+
+[Section: Contact Information]
+Email support: support@gigacorp-example.com
+Phone support (Business tier only): 1-800-555-0199
+General inquiries response time: within 24 hours on business days.
