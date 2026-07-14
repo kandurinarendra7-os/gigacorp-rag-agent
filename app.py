@@ -1,22 +1,9 @@
-"""
-GigaCorp Customer Support RAG Agent
-------------------------------------
-A Streamlit chat app that answers customer questions using a local FAQ
-knowledge base (RAG with FAISS), cites its sources, and remembers
-conversation history across turns.
-
-Run locally:
-    streamlit run app.py
-
-Deploy free on Streamlit Community Cloud (see README.md).
-"""
-
 import os
 import streamlit as st
 
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
@@ -38,10 +25,13 @@ DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "gigacorp_faq.txt")
 # --------------------------------------------------------------------------
 with st.sidebar:
     st.header("⚙️ Settings")
-    provider = st.selectbox("LLM Provider", ["OpenAI", "Anthropic"], index=0)
+    # Added Groq as the default option
+    provider = st.selectbox("LLM Provider", ["Groq", "OpenAI", "Anthropic"], index=0)
 
     default_key = ""
-    if provider == "OpenAI":
+    if provider == "Groq":
+        default_key = st.secrets.get("GROQ_API_KEY", "") if hasattr(st, "secrets") else ""
+    elif provider == "OpenAI":
         default_key = st.secrets.get("OPENAI_API_KEY", "") if hasattr(st, "secrets") else ""
     else:
         default_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, "secrets") else ""
@@ -53,7 +43,9 @@ with st.sidebar:
         help="Not stored anywhere. Falls back to Streamlit secrets if set."
     )
 
-    if provider == "OpenAI":
+    if provider == "Groq":
+        model_name = st.text_input("Model", value="llama-3.3-70b-versatile")
+    elif provider == "OpenAI":
         model_name = st.text_input("Model", value="gpt-4o-mini")
     else:
         model_name = st.text_input("Model", value="claude-3-5-haiku-20241022")
@@ -65,12 +57,13 @@ with st.sidebar:
 
     st.divider()
     st.markdown("**Knowledge base:** `data/gigacorp_faq.txt`")
-    with st.expander("Preview knowledge base"):
-        with open(DATA_PATH, "r", encoding="utf-8") as f:
-            st.text(f.read())
+    if os.path.exists(DATA_PATH):
+        with st.expander("Preview knowledge base"):
+            with open(DATA_PATH, "r", encoding="utf-8") as f:
+                st.text(f.read())
 
 if not api_key:
-    st.info("👈 Enter an API key in the sidebar to start chatting.")
+    st.info(f"👈 Enter a {provider} API key in the sidebar to start chatting.")
     st.stop()
 
 # --------------------------------------------------------------------------
@@ -78,8 +71,11 @@ if not api_key:
 # --------------------------------------------------------------------------
 @st.cache_resource(show_spinner="Indexing knowledge base...")
 def build_vectorstore(path: str):
-    """Load the FAQ file, chunk it by section (preserving line numbers for
-    citation), embed it, and build a FAISS vector store."""
+    """Load the FAQ file, chunk it by section, embed it, and build a FAISS vector store."""
+    if not os.path.exists(path):
+        st.error(f"Data file not found at {path}")
+        st.stop()
+        
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
@@ -107,7 +103,6 @@ def build_vectorstore(path: str):
     for i, line in enumerate(lines, start=1):
         stripped = line.strip()
         if stripped.startswith("[Section:"):
-            # flush previous section as a chunk before starting new one
             flush(i - 1)
             buffer = []
             current_section = stripped.strip("[]").replace("Section:", "").strip()
@@ -116,10 +111,10 @@ def build_vectorstore(path: str):
             buffer.append(line)
     flush(len(lines))
 
+    # Using free HuggingFace embeddings
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     vectorstore = FAISS.from_documents(docs, embeddings)
     return vectorstore
-
 
 vectorstore = build_vectorstore(DATA_PATH)
 retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
@@ -128,7 +123,10 @@ retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 # Build the LLM
 # --------------------------------------------------------------------------
 def get_llm():
-    if provider == "OpenAI":
+    if provider == "Groq":
+        from langchain_groq import ChatGroq
+        return ChatGroq(model=model_name, groq_api_key=api_key, temperature=0.2)
+    elif provider == "OpenAI":
         from langchain_openai import ChatOpenAI
         return ChatOpenAI(model=model_name, api_key=api_key, temperature=0.2)
     else:
@@ -139,7 +137,6 @@ llm = get_llm()
 
 # --------------------------------------------------------------------------
 # History-aware retriever: rewrites follow-up questions using chat history
-# e.g. "How much does it cost?" -> "How much does shipping to India cost?"
 # --------------------------------------------------------------------------
 contextualize_q_prompt = ChatPromptTemplate.from_messages([
     ("system", "Given a chat history and the latest user question which might "
@@ -189,7 +186,6 @@ for msg in msgs.messages:
     role = "assistant" if msg.type == "ai" else "user"
     with st.chat_message(role):
         st.markdown(msg.content)
-        # Re-display citations stored alongside AI messages, if any
         if role == "assistant" and msg.additional_kwargs.get("sources"):
             with st.expander("📚 Sources"):
                 for s in msg.additional_kwargs["sources"]:
@@ -230,7 +226,6 @@ if user_input := st.chat_input("Ask a question, e.g. 'Do you ship to India?'"):
                             st.markdown(f"- **{d.metadata['source']}** — *{d.metadata['section']}* "
                                         f"(lines {d.metadata['start_line']}-{d.metadata['end_line']})")
 
-                # Attach sources to the last AI message so they persist on rerender
                 if msgs.messages:
                     msgs.messages[-1].additional_kwargs["sources"] = sources
 
