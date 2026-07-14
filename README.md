@@ -5,6 +5,9 @@ company ("GigaCorp") using Retrieval-Augmented Generation (RAG) over a local
 FAQ knowledge base. It cites its sources (section + line numbers) and
 remembers conversation context across turns.
 
+
+HAVE A LOOK AT MY RAG AGENT:https://gigacorp-rag-assistant-9sw5cqktdeur6dardnm63j.streamlit.app/
+
 ## Features
 - **Backend/orchestration:** Python + LangChain (history-aware retrieval chain)
 - **LLM:** OpenAI or Anthropic (switchable in the sidebar)
