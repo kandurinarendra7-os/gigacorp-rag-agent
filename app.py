@@ -51,12 +51,16 @@ with st.sidebar:
             """
             <style>
             .stApp {
-                background-color: #ffffff;
-                color: #000000;
+                background-color: #fcfcfc;
+                color: #111111;
             }
             section[data-testid="stSidebar"] {
-                background-color: #f0f2f6;
-                color: #000000;
+                background-color: #f4f6f9;
+                color: #111111;
+            }
+            .stTextInput input, .stSelectbox select {
+                color: #111111 !important;
+                background-color: #ffffff !important;
             }
             </style>
             """,
