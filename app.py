@@ -16,58 +16,11 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 st.set_page_config(page_title="GigaCorp Support Assistant", page_icon="🛠️", layout="centered")
 
 # --------------------------------------------------------------------------
-# Sidebar: LLM provider, API key, & Theme Toggle
+# Sidebar: LLM provider, API key
 # --------------------------------------------------------------------------
 with st.sidebar:
     st.header("⚙️ Settings")
-    
-    # Theme toggle bar
-    st.subheader("🎨 Appearance")
-    theme_mode = st.radio("Background Theme", ["White", "Black"], index=0, horizontal=True)
-    
-    # Apply theme CSS
-    if theme_mode == "Black":
-        st.markdown(
-            """
-            <style>
-            .stApp {
-                background-color: #0e1117;
-                color: #ffffff;
-            }
-            section[data-testid="stSidebar"] {
-                background-color: #161a23;
-                color: #ffffff;
-            }
-            .stTextInput input, .stSelectbox select {
-                color: #ffffff !important;
-                background-color: #262730 !important;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-    else:
-        st.markdown(
-            """
-            <style>
-            .stApp {
-                background-color: #fcfcfc;
-                color: #111111;
-            }
-            section[data-testid="stSidebar"] {
-                background-color: #f4f6f9;
-                color: #111111;
-            }
-            .stTextInput input, .stSelectbox select {
-                color: #111111 !important;
-                background-color: #ffffff !important;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
 
-    st.divider()
     # Added Groq as the default option
     provider = st.selectbox("LLM Provider", ["Groq", "OpenAI", "Anthropic"], index=0)
 
