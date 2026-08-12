@@ -14,17 +14,56 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 # Page config
 # --------------------------------------------------------------------------
 st.set_page_config(page_title="GigaCorp Support Assistant", page_icon="🛠️", layout="centered")
-st.title("🛠️ GigaCorp Customer Support Assistant")
-st.caption("Ask me about shipping, returns, business hours, or membership tiers. "
-           "I remember our conversation and cite my sources.")
-
-DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "gigacorp_faq.txt")
 
 # --------------------------------------------------------------------------
-# Sidebar: LLM provider + API key
+# Sidebar: LLM provider, API key, & Theme Toggle
 # --------------------------------------------------------------------------
 with st.sidebar:
     st.header("⚙️ Settings")
+    
+    # Theme toggle bar
+    st.subheader("🎨 Appearance")
+    theme_mode = st.radio("Background Theme", ["White", "Black"], index=0, horizontal=True)
+    
+    # Apply theme CSS
+    if theme_mode == "Black":
+        st.markdown(
+            """
+            <style>
+            .stApp {
+                background-color: #0e1117;
+                color: #ffffff;
+            }
+            section[data-testid="stSidebar"] {
+                background-color: #161a23;
+                color: #ffffff;
+            }
+            .stTextInput input, .stSelectbox select {
+                color: #ffffff !important;
+                background-color: #262730 !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            """
+            <style>
+            .stApp {
+                background-color: #ffffff;
+                color: #000000;
+            }
+            section[data-testid="stSidebar"] {
+                background-color: #f0f2f6;
+                color: #000000;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.divider()
     # Added Groq as the default option
     provider = st.selectbox("LLM Provider", ["Groq", "OpenAI", "Anthropic"], index=0)
 
@@ -57,10 +96,14 @@ with st.sidebar:
 
     st.divider()
     st.markdown("**Knowledge base:** `data/gigacorp_faq.txt`")
-    if os.path.exists(DATA_PATH):
+    if os.path.exists(DATA_PATH := os.path.join(os.path.dirname(__file__), "data", "gigacorp_faq.txt")):
         with st.expander("Preview knowledge base"):
             with open(DATA_PATH, "r", encoding="utf-8") as f:
                 st.text(f.read())
+
+st.title("🛠️ GigaCorp Customer Support Assistant")
+st.caption("Ask me about shipping, returns, business hours, or membership tiers. "
+           "I remember our conversation and cite my sources.")
 
 if not api_key:
     st.info(f"👈 Enter a {provider} API key in the sidebar to start chatting.")
