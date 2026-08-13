@@ -197,7 +197,8 @@ if user_input := st.chat_input("Ask a question, e.g. 'Do you ship to India?'"):
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
+        # Added explicit loading spinner for generating response / thinking animation
+        with st.spinner("GigaCorp assistant is thinking and searching knowledge base..."):
             try:
                 result = conversational_rag_chain.invoke(
                     {"input": user_input},
