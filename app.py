@@ -231,8 +231,52 @@ conversational_rag_chain = RunnableWithMessageHistory(
 )
 
 # --------------------------------------------------------------------------
-# Chat UI with Professional Features (TTS & Feedback Ratings)
+# Chat UI with Working Audio Component via Streamlit Components HTML
 # --------------------------------------------------------------------------
+import streamlit.components.v1 as components
+
+def render_tts_audio_player(text: str, unique_key: str):
+    clean_text = json.dumps(text)
+    html_code = f"""
+    <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px; font-family: sans-serif;">
+        <button id="playbtn_{unique_key}" style="background-color: #2b5c8f; color: white; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 14px; font-weight: 500;">🔊 Read Aloud</button>
+        <button id="stopbtn_{unique_key}" style="background-color: #f0f2f6; color: #31333F; border: 1px solid #d6d9dc; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 14px; font-weight: 500;">⏹️ Stop</button>
+        <span id="status_{unique_key}" style="font-size: 12px; color: #666;"></span>
+    </div>
+    <script>
+    const text_{unique_key} = {clean_text};
+    const playBtn_{unique_key} = document.getElementById('playbtn_{unique_key}');
+    const stopBtn_{unique_key} = document.getElementById('stopbtn_{unique_key}');
+    const status_{unique_key} = document.getElementById('status_{unique_key}');
+
+    playBtn_{unique_key}.onclick = function() {{
+        if (!('speechSynthesis' in window)) {{
+            status_{unique_key}.innerText = 'Speech synthesis not supported.';
+            return;
+        }}
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text_{unique_key});
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        window.activeUtterance = utterance;
+        
+        utterance.onstart = function() {{ status_{unique_key}.innerText = 'Playing...'; }};
+        utterance.onend = function() {{ status_{unique_key}.innerText = ''; }};
+        utterance.onerror = function() {{ status_{unique_key}.innerText = 'Error playing speech.'; }};
+
+        window.speechSynthesis.speak(utterance);
+    }};
+
+    stopBtn_{unique_key}.onclick = function() {{
+        if ('speechSynthesis' in window) {{
+            window.speechSynthesis.cancel();
+            status_{unique_key}.innerText = '';
+        }}
+    }};
+    </script>
+    """
+    components.html(html_code, height=50)
+
 if len(msgs.messages) == 0:
     msgs.add_ai_message("Hi! I'm the GigaCorp support assistant. Ask me anything about "
                          "shipping, returns, business hours, or membership tiers.")
@@ -243,39 +287,13 @@ for idx, msg in enumerate(msgs.messages):
         st.markdown(msg.content)
         
         if role == "assistant":
-            # Sources expander
             if msg.additional_kwargs.get("sources"):
                 with st.expander("📚 Sources"):
                     for s in msg.additional_kwargs["sources"]:
                         st.markdown(f"- **{s['source']}** — *{s['section']}* "
                                     f"(lines {s['start_line']}-{s['end_line']})")
             
-            # Robust Read Aloud button feature with window-scoped utterance to prevent garbage collection and browser resume bugs
-            safe_json_text = json.dumps(msg.content)
-            speech_html = f"""
-            <div style="margin-top: 10px; display: flex; gap: 8px; align-items: center;">
-                <button onclick='try {{ 
-                    if (!("speechSynthesis" in window)) {{ alert("Speech synthesis is not supported in this browser."); return; }}
-                    window.speechSynthesis.cancel(); 
-                    const textToSpeak = {safe_json_text};
-                    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                    utterance.rate = 1.0;
-                    utterance.pitch = 1.0;
-                    window._gigacorpUtterance = utterance;
-                    window.speechSynthesis.speak(utterance);
-                    if (window.speechSynthesis.paused) {{ window.speechSynthesis.resume(); }}
-                }} catch(err) {{ console.error(err); }}' 
-                style="background-color: #ffffff; color: #1f1f1f; border: 1px solid #d6d9dc; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">🔊 Read Aloud</button>
-                
-                <button onclick='try {{ 
-                    if ("speechSynthesis" in window) {{ 
-                        window.speechSynthesis.cancel(); 
-                    }}
-                }} catch(err) {{ console.error(err); }}' 
-                style="background-color: #ffffff; color: #d9534f; border: 1px solid #d6d9dc; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">⏹️ Stop</button>
-            </div>
-            """
-            st.markdown(speech_html, unsafe_allow_html=True)
+            render_tts_audio_player(msg.content, f"msg_{idx}")
 
             cols = st.columns([1, 1, 10])
             with cols[0]:
@@ -324,32 +342,7 @@ if user_input := st.chat_input("Ask a question, e.g. 'Do you ship to India?'"):
                 if msgs.messages:
                     msgs.messages[-1].additional_kwargs["sources"] = sources
                     
-                # Render Read Aloud & Stop buttons for fresh message with persistent window scope
-                safe_json_text = json.dumps(answer)
-                speech_html = f"""
-                <div style="margin-top: 10px; display: flex; gap: 8px; align-items: center;">
-                    <button onclick='try {{ 
-                        if (!("speechSynthesis" in window)) {{ alert("Speech synthesis is not supported in this browser."); return; }}
-                        window.speechSynthesis.cancel(); 
-                        const textToSpeak = {safe_json_text};
-                        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                        utterance.rate = 1.0;
-                        utterance.pitch = 1.0;
-                        window._gigacorpUtterance = utterance;
-                        window.speechSynthesis.speak(utterance);
-                        if (window.speechSynthesis.paused) {{ window.speechSynthesis.resume(); }}
-                    }} catch(err) {{ console.error(err); }}' 
-                    style="background-color: #ffffff; color: #1f1f1f; border: 1px solid #d6d9dc; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">🔊 Read Aloud</button>
-                    
-                    <button onclick='try {{ 
-                        if ("speechSynthesis" in window) {{ 
-                            window.speechSynthesis.cancel(); 
-                        }}
-                    }} catch(err) {{ console.error(err); }}' 
-                    style="background-color: #ffffff; color: #d9534f; border: 1px solid #d6d9dc; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">⏹️ Stop</button>
-                </div>
-                """
-                st.markdown(speech_html, unsafe_allow_html=True)
+                render_tts_audio_player(answer, f"msg_{len(msgs.messages)-1}")
 
             except Exception as e:
                 st.error(f"Something went wrong: {e}")
