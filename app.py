@@ -16,6 +16,27 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 # --------------------------------------------------------------------------
 st.set_page_config(page_title="GigaCorp Support Assistant", page_icon="🛠️", layout="centered")
 
+# Custom CSS injection for high-impact UI styling improvements
+st.markdown(
+    """
+    <style>
+    .stChatMessage {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    .stButton button {
+        border-radius: 6px;
+        font-weight: 500;
+    }
+    .sidebar .sidebar-content {
+        background-color: #f8f9fa;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # --------------------------------------------------------------------------
 # Sidebar: LLM provider, API key, and Professional Tools
 # --------------------------------------------------------------------------
@@ -163,7 +184,11 @@ def get_llm():
         from langchain_anthropic import ChatAnthropic
         return ChatAnthropic(model=model_name, api_key=api_key, temperature=0.2)
 
-llm = get_llm()
+try:
+    llm = get_llm()
+except Exception as e:
+    st.error(f"Failed to initialize LLM client: {e}")
+    st.stop()
 
 # --------------------------------------------------------------------------
 # History-aware retriever
