@@ -250,11 +250,11 @@ for idx, msg in enumerate(msgs.messages):
                         st.markdown(f"- **{s['source']}** — *{s['section']}* "
                                     f"(lines {s['start_line']}-{s['end_line']})")
             
-            # Single Read Aloud button feature
-            clean_text = msg.content.replace('"', '\\"').replace('\n', ' ')
+            # Robust Read Aloud button feature with JSON serialization to prevent syntax/escaping bugs
+            safe_json_text = json.dumps(msg.content)
             speech_html = f"""
             <div style="margin-top: 10px;">
-                <button onclick="window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('{clean_text}'); window.speechSynthesis.speak(u);" style="background-color: #ffffff; color: #1f1f1f; border: 1px solid #d6d9dc; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">🔊 Read Aloud</button>
+                <button onclick='window.speechSynthesis.cancel(); window._currentUtterance = new SpeechSynthesisUtterance({safe_json_text}); window.speechSynthesis.speak(window._currentUtterance);' style="background-color: #ffffff; color: #1f1f1f; border: 1px solid #d6d9dc; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">🔊 Read Aloud</button>
             </div>
             """
             st.markdown(speech_html, unsafe_allow_html=True)
@@ -306,11 +306,11 @@ if user_input := st.chat_input("Ask a question, e.g. 'Do you ship to India?'"):
                 if msgs.messages:
                     msgs.messages[-1].additional_kwargs["sources"] = sources
                     
-                # Render single Read Aloud button immediately for the fresh message
-                clean_text = answer.replace('"', '\\"').replace('\n', ' ')
+                # Render single Read Aloud button immediately for the fresh message with safe JSON serialization
+                safe_json_text = json.dumps(answer)
                 speech_html = f"""
                 <div style="margin-top: 10px;">
-                    <button onclick="window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('{clean_text}'); window.speechSynthesis.speak(u);" style="background-color: #ffffff; color: #1f1f1f; border: 1px solid #d6d9dc; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">🔊 Read Aloud</button>
+                    <button onclick='window.speechSynthesis.cancel(); window._currentUtterance = new SpeechSynthesisUtterance({safe_json_text}); window.speechSynthesis.speak(window._currentUtterance);' style="background-color: #ffffff; color: #1f1f1f; border: 1px solid #d6d9dc; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">🔊 Read Aloud</button>
                 </div>
                 """
                 st.markdown(speech_html, unsafe_allow_html=True)
