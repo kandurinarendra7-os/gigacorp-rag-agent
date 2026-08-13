@@ -1,4 +1,5 @@
 import os
+import json
 import streamlit as st
 
 from langchain_core.documents import Document
@@ -16,12 +17,11 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 st.set_page_config(page_title="GigaCorp Support Assistant", page_icon="🛠️", layout="centered")
 
 # --------------------------------------------------------------------------
-# Sidebar: LLM provider, API key
+# Sidebar: LLM provider, API key, and Professional Tools
 # --------------------------------------------------------------------------
 with st.sidebar:
     st.header("⚙️ Settings")
 
-    # Added Groq as the default option
     provider = st.selectbox("LLM Provider", ["Groq", "OpenAI", "Anthropic"], index=0)
 
     default_key = ""
@@ -47,6 +47,37 @@ with st.sidebar:
         model_name = st.text_input("Model", value="claude-3-5-haiku-20241022")
 
     st.divider()
+    st.header("📊 Professional Tools")
+    
+    # Session export feature
+    msgs_export_chk = StreamlitChatMessageHistory(key="chat_messages")
+    if len(msgs_export_chk.messages) > 0:
+        chat_data = []
+        for m in msgs_export_chk.messages:
+            chat_data.append({"role": m.type, "content": m.content})
+        
+        json_str = json.dumps(chat_data, indent=2)
+        st.download_button(
+            label="📥 Export Chat (JSON)",
+            data=json_str,
+            file_name="gigacorp_chat_history.json",
+            mime="application/json"
+        )
+
+        md_str = "# GigaCorp Support Chat Transcript\n\n"
+        for m in msgs_export_chk.messages:
+            role_title = "User" if m.type == "human" else "Assistant"
+            md_str += f"**{role_title}:**\n{m.content}\n\n---\n\n"
+        st.download_button(
+            label="📥 Export Chat (Markdown)",
+            data=md_str,
+            file_name="gigacorp_chat_history.md",
+            mime="text/markdown"
+        )
+    else:
+        st.caption("Export options will appear once a conversation starts.")
+
+    st.divider()
     if st.button("🗑️ Clear conversation"):
         st.session_state.clear()
         st.rerun()
@@ -60,7 +91,7 @@ with st.sidebar:
 
 st.title("🛠️ GigaCorp Customer Support Assistant")
 st.caption("Ask me about shipping, returns, business hours, or membership tiers. "
-           "I remember our conversation and cite my sources.")
+           "I remember our conversation, cite my sources, and support audio playback & feedback.")
 
 if not api_key:
     st.info(f"👈 Enter a {provider} API key in the sidebar to start chatting.")
@@ -111,7 +142,6 @@ def build_vectorstore(path: str):
             buffer.append(line)
     flush(len(lines))
 
-    # Using free HuggingFace embeddings
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     vectorstore = FAISS.from_documents(docs, embeddings)
     return vectorstore
@@ -136,7 +166,7 @@ def get_llm():
 llm = get_llm()
 
 # --------------------------------------------------------------------------
-# History-aware retriever: rewrites follow-up questions using chat history
+# History-aware retriever
 # --------------------------------------------------------------------------
 contextualize_q_prompt = ChatPromptTemplate.from_messages([
     ("system", "Given a chat history and the latest user question which might "
@@ -163,7 +193,7 @@ question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
 rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
 # --------------------------------------------------------------------------
-# Conversation memory (persists per browser session)
+# Conversation memory
 # --------------------------------------------------------------------------
 msgs = StreamlitChatMessageHistory(key="chat_messages")
 
@@ -176,28 +206,50 @@ conversational_rag_chain = RunnableWithMessageHistory(
 )
 
 # --------------------------------------------------------------------------
-# Chat UI
+# Chat UI with Professional Features (TTS & Feedback Ratings)
 # --------------------------------------------------------------------------
 if len(msgs.messages) == 0:
     msgs.add_ai_message("Hi! I'm the GigaCorp support assistant. Ask me anything about "
                          "shipping, returns, business hours, or membership tiers.")
 
-for msg in msgs.messages:
+for idx, msg in enumerate(msgs.messages):
     role = "assistant" if msg.type == "ai" else "user"
     with st.chat_message(role):
         st.markdown(msg.content)
-        if role == "assistant" and msg.additional_kwargs.get("sources"):
-            with st.expander("📚 Sources"):
-                for s in msg.additional_kwargs["sources"]:
-                    st.markdown(f"- **{s['source']}** — *{s['section']}* "
-                                f"(lines {s['start_line']}-{s['end_line']})")
+        
+        if role == "assistant":
+            # Sources expander
+            if msg.additional_kwargs.get("sources"):
+                with st.expander("📚 Sources"):
+                    for s in msg.additional_kwargs["sources"]:
+                        st.markdown(f"- **{s['source']}** — *{s['section']}* "
+                                    f"(lines {s['start_line']}-{s['end_line']})")
+            
+            # Professional Feature 1: SpeechSynthesis Read-Aloud Controls
+            clean_text = msg.content.replace('"', '\\"').replace('\n', ' ')
+            speech_html = f"""
+            <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
+                <button onclick="window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('{clean_text}'); window.speechSynthesis.speak(u);" style="background-color: #f0f2f6; border: 1px solid #d6d9dc; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 13px;">🔊 Play Audio</button>
+                <button onclick="window.speechSynthesis.pause();" style="background-color: #f0f2f6; border: 1px solid #d6d9dc; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 13px;">⏸️ Pause</button>
+                <button onclick="window.speechSynthesis.resume();" style="background-color: #f0f2f6; border: 1px solid #d6d9dc; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 13px;">▶️ Resume</button>
+                <button onclick="window.speechSynthesis.cancel();" style="background-color: #f0f2f6; border: 1px solid #d6d9dc; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 13px;">⏹️ Stop</button>
+            </div>
+            """
+            st.markdown(speech_html, unsafe_allow_html=True)
+
+            cols = st.columns([1, 1, 10])
+            with cols[0]:
+                if st.button("👍", key=f"thumb_up_{idx}"):
+                    st.toast("Thank you for your positive feedback!", icon="✅")
+            with cols[1]:
+                if st.button("👎", key=f"thumb_down_{idx}"):
+                    st.toast("Thank you for your feedback. We will improve!", icon="⚠️")
 
 if user_input := st.chat_input("Ask a question, e.g. 'Do you ship to India?'"):
     with st.chat_message("user"):
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
-        # Added explicit loading spinner for generating response / thinking animation
         with st.spinner("GigaCorp assistant is thinking and searching knowledge base..."):
             try:
                 result = conversational_rag_chain.invoke(
@@ -229,6 +281,18 @@ if user_input := st.chat_input("Ask a question, e.g. 'Do you ship to India?'"):
 
                 if msgs.messages:
                     msgs.messages[-1].additional_kwargs["sources"] = sources
+                    
+                # Render speech controls immediately for the fresh message
+                clean_text = answer.replace('"', '\\"').replace('\n', ' ')
+                speech_html = f"""
+                <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
+                    <button onclick="window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('{clean_text}'); window.speechSynthesis.speak(u);" style="background-color: #f0f2f6; border: 1px solid #d6d9dc; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 13px;">🔊 Play Audio</button>
+                    <button onclick="window.speechSynthesis.pause();" style="background-color: #f0f2f6; border: 1px solid #d6d9dc; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 13px;">⏸️ Pause</button>
+                    <button onclick="window.speechSynthesis.resume();" style="background-color: #f0f2f6; border: 1px solid #d6d9dc; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 13px;">▶️ Resume</button>
+                    <button onclick="window.speechSynthesis.cancel();" style="background-color: #f0f2f6; border: 1px solid #d6d9dc; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 13px;">⏹️ Stop</button>
+                </div>
+                """
+                st.markdown(speech_html, unsafe_allow_html=True)
 
             except Exception as e:
                 st.error(f"Something went wrong: {e}")
